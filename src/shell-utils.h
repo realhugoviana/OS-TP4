@@ -2,7 +2,7 @@
 #ifndef SHELL_UTILS
 #define SHELL_UTILS
 
-/* découpe la chaine 'cmd' en multiples chaines stockées dans le tableau
+/* découpe la chaine 'cmd' en multiples chaines stockées dans le tableau 
  * 'tokens'. La séparation se fait sur les blancs (' \t\n')
  * PARAMETRES :
  * * tokens : le tableau de retour

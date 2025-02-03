@@ -27,61 +27,54 @@ int main() {
 	/* variables entières pour compter le nombre de token */
 	int nb_tokens;
 
+	while(1){
+		printf("COMMANDE: "); 
+		/* Récupération des données entrées au clavier */
+		data=fgets(line, INPUT_BUFFER_SIZE, stdin);
 
+		if (data==NULL) {
+			/* Erreur ou fin de fichier : on quitte tout de suite */
+			if (errno) {
+				/* Une erreur: on affiche le message correspondant
+				* et on quitte en indiquant une erreur */
+				perror("fgets");
+				exit(1);
+			} else {
+				/* Sinon ça doit être une fin de fichier.
+				* On l'indique et on quitte normalement */
+				fprintf(stderr, "EOF: exiting\n");
+				exit(0);
+			}
+		}
+		
+		nb_tokens=split_tokens(tokens, data, MAX_TOKEN_NB);
 
-	
-	printf("COMMANDE: "); 
-	/* Récupération des données entrées au clavier */
-	data=fgets(line, INPUT_BUFFER_SIZE, stdin);
-
-
-	while(data!= NULL){
+		/* S'il y a trop de tokens, on abandonne */
+		if (nb_tokens==MAX_TOKEN_NB) {
+			fprintf(stderr, "Too many tokens: exiting\n");
+			exit(1);
+		}
+		if (nb_tokens<=0) {
+			fprintf(stderr, "No tokens found: exiting\n");
+			exit(1);
+		}
+		
+		if (strcmp(tokens[0], "exit") == 0) {
+			printf("EOF: exiting\n");
+			exit(0);
+		}
 
 		pid_t pid;
 		pid = fork();
-		if (pid == 0) {  /* child */
-		
-			nb_tokens=split_tokens(tokens, data, MAX_TOKEN_NB);
-
-			/* S'il y a trop de tokens, on abandonne */
-			if (nb_tokens==MAX_TOKEN_NB) {
-				fprintf(stderr, "Too many tokens: exiting\n");
-				exit(1);
-			}
-			if (nb_tokens<=0) {
-				fprintf(stderr, "No tokens found: exiting\n");
-				exit(1);
-			}
+		if (pid == 0) { 
 			execvp(tokens[0], tokens);
 			perror("execvp");
 			
 			exit(0);
 		}
 		
-		wait( NULL); 
-		printf("COMMANDE: "); 
-		data=fgets(line, INPUT_BUFFER_SIZE, stdin);
-			
-		
-			
-			
+		wait(NULL);
 	}
-
-	if (data==NULL) {
-		/* Erreur ou fin de fichier : on quitte tout de suite */
-		if (errno) {
-			/* Une erreur: on affiche le message correspondant
-			* et on quitte en indiquant une erreur */
-			perror("fgets");
-			exit(1);
-		} else {
-			/* Sinon ça doit être une fin de fichier.
-			* On l'indique et on quitte normalement */
-			fprintf(stderr, "EOF: exiting\n");
-			exit(0);
-		}
-	}
-
 
 	/* On ne devrait jamais arriver là */
 

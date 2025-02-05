@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/wait.h>   //pour wait
 #include "shell-utils.h"
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #define INPUT_BUFFER_SIZE 2048
 #define MAX_TOKEN_NB 512
@@ -65,6 +67,46 @@ int main() {
 			exit(0);
 		}
 
+		//_________________4.3____début
+		int trouver = 0; //pour savoir s'il y a une rédirection
+		char *file_out = trouve_redirection(tokens, ">");
+		if(file_out!=NULL){
+			trouver = 1; 
+			pid_t pid = fork();
+			if (pid == 0) { 
+				int fd;
+				if ((fd = open(file_out, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
+					perror("open");
+					exit(1);
+				}
+				dup2(fd, 1);
+				execvp(tokens[0], tokens);
+				perror("execvp");
+				exit(0);
+			}
+			
+		}
+		
+		file_out=trouve_redirection(tokens, "<");
+		if(file_out!=NULL){
+			trouver = 1; 
+			pid_t pid = fork();
+			if (pid == 0) { 
+				int fd;
+				if ((fd = open(file_out, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
+					perror("open");
+					exit(1);
+				}
+				dup2(fd, 0);
+				execvp(tokens[0], tokens);
+				perror("execvp");
+				exit(0);
+			}
+			
+
+		} //_____4.3_fin
+		
+		if(trouver==0){ //on exécute la commande s'il n'y a pas de rédirection
 		pid_t pid;
 		pid = fork();
 		if (pid == 0) { 
@@ -73,7 +115,7 @@ int main() {
 			
 			exit(0);
 		}
-		
+		}
 		wait(NULL);
 	}
 

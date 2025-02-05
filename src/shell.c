@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
+#include <sys/wait.h>   //pour wait
 #include "shell-utils.h"
 
 #define INPUT_BUFFER_SIZE 2048

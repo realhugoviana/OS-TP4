@@ -67,6 +67,35 @@ int main() {
 			exit(0);
 		}
 
+		char **tokens_cmd2;
+		tokens_cmd2=trouve_tube(tokens, "|");
+		if (tokens_cmd2 != NULL) {
+			
+			int tube[2];
+			if (pipe(tube) == -1) {
+				fprintf(stderr, "Erreur de creation du tube\n");
+				exit(1);
+			}
+			pid_t pid_cmd2= fork(); 
+			if(pid_cmd2==0){
+				close(tube[0]); 
+				dup2(tube[1], 1);
+				execvp(tokens[0], tokens);
+				perror("execvp");
+				exit(0);
+			}
+			pid_t pid_cmd3= fork(); 
+			if(pid_cmd3==0){
+				close(tube[1]); 
+				dup2(tube[0], 0);
+				execvp(tokens_cmd2[0], tokens_cmd2);
+				perror("execvp");
+				exit(0);
+			}
+			close(tube[0]); 
+			close(tube[1]); 
+		}
+		/*
 		//_________________4.3____début
 		char *file_out = trouve_redirection(tokens, ">");
 		char *file_in = trouve_redirection(tokens, "<");
@@ -93,7 +122,7 @@ int main() {
 			execvp(tokens[0], tokens);
 			perror("execvp");
 			exit(0);
-		}
+		}*/
 
 		wait(NULL);
 	

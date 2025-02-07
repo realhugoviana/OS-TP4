@@ -93,7 +93,7 @@ int main() {
 				exit(0);
 			}
 			close(tube[1]);
-			close(tube[1]); 
+			close(tube[0]); 
 			}
 		
 		
@@ -102,6 +102,7 @@ int main() {
 
 
 		//_________________4.3____début
+		/* 
 		char *file_out = trouve_redirection(tokens, ">");
 		char *file_in = trouve_redirection(tokens, "<");
 
@@ -127,7 +128,7 @@ int main() {
 			execvp(tokens[0], tokens);
 			perror("execvp");
 			exit(0);
-		}
+		} */
 
 		wait(NULL);
 	

@@ -66,71 +66,162 @@ int main() {
 			printf("EOF: exiting\n");
 			exit(0);
 		}
+		char **tokens_cmd2 = trouve_tube(tokens, "|");
+		char **tokens_cmd3 = NULL;
+		if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} //pour savoir quand il n'y a plus de pipe
+		int cmp=0; //compteur pour savoir si on est dans le premier
+		int tab_tube[MAX_TOKEN_NB][2]; 
+		int fin = 2;  
+		while (fin-1!=0){
+			printf("cmp = %d\n", cmp); 
+			if(tokens_cmd2==NULL && cmp==0){ //pas de pipe on exécute la comande
+				printf(" 11\n"); 
+				pid_t pid1 = fork();
+				if(pid1==0){
+					execvp(tokens[0], tokens);
+					perror("execvp");
+					exit(0);
 
-		char **tokens_cmd2;
-		tokens_cmd2 = trouve_tube(tokens, "|");
-		if (tokens_cmd2!=NULL){
-			int tube[2]; 
-			if(pipe(tube)==-1){
-				fprintf(stderr, "Erreur de creation du tube\n");
-				exit(1); 
+				}
+				fin-=1; 
+				break;
 			}
-			pid_t pid1 = fork();
-			if(pid1==0){
-				close(tube[0]);
-				dup2(tube[1], 1);
+			
+
+			if(cmp ==0){ //si on se trouve avant le premier pipe
+				printf("22 \n"); 
+				if(pipe(tab_tube[cmp])==-1){
+					fprintf(stderr, "Erreur de creation du tube\n");
+					exit(1); 
+				}
+				pid_t pid1 = fork();
+				if(pid1==0){ //on écrit dans le premier tube si c'est la première commande
+					close(tab_tube[cmp][0]);
+					dup2(tab_tube[cmp][1], 1);
+					execvp(tokens[0], tokens);
+					perror("execvp");
+					exit(0);
+				}
+			}
+			else if(tokens_cmd2!=NULL && tokens_cmd3==NULL ){ //si la commande se trouve entre deux pipe
+				printf("33 \n"); 
+				if(pipe(tab_tube[cmp])==-1){
+					fprintf(stderr, "Erreur de creation du tube\n");
+					exit(1); 
+				}
+				pid_t pid1 = fork();
+				if(pid1==0){ //on écrit dans le premier tube si c'est la première commande
+					close(tab_tube[cmp-1][1]);
+					dup2(tab_tube[cmp-1][0], 0);
+
+					close(tab_tube[cmp][0]);
+					dup2(tab_tube[cmp][1], 1);
+					execvp(tokens[0], tokens);
+					perror("execvp");
+					exit(0);
+				}
+
+			}
+			else{//quand on est à la fin
+				printf("fin x\n"); 
+				pid_t pid2 = fork();
+				if(pid2==0){
+					close(tab_tube[cmp-1][1]);
+					printf("fils \n");
+					dup2(tab_tube[cmp - 1][0], 0);
+					execvp(tokens[0], tokens);
+					perror("execvp");
+					exit(0);
+				}
+				fin -= 1;
+				break;  
+			}
+			cmp+=1; 
+			int ind=0; 
+			while(tokens_cmd2[ind]!=NULL){
+				tokens[ind] = tokens_cmd2[ind];
+				ind++;
+			}
+			tokens[ind]=NULL; 
+			// TEST
+			int j = 0;
+			while(tokens[j]!=NULL){
+				printf("%s ", tokens[j]);
+				j++;
+			}
+			printf("\n fin while\n");
+
+			tokens_cmd2= trouve_tube(tokens, "|");
+			if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} 
+		}
+		/*int i =0; 
+		while (i <=cmp){  //pour close les pipe
+			close(tab_tube[i][0]); 
+			close(tab_tube[i][1]); 
+		} */
+			/*
+					if (tokens_cmd2!=NULL){
+						int tube[2];
+						if(pipe(tube)==-1){
+							fprintf(stderr, "Erreur de creation du tube\n");
+							exit(1);
+						}
+						pid_t pid1 = fork();
+						if(pid1==0){
+							close(tube[0]);
+							dup2(tube[1], 1);
+							execvp(tokens[0], tokens);
+							perror("execvp");
+							exit(0);
+						}
+
+						pid_t pid2 = fork();
+						if(pid2==0){
+							close(tube[1]);
+							dup2(tube[0], 0);
+							execvp(tokens_cmd2[0], tokens_cmd2);
+							perror("execvp");
+							exit(0);
+						}
+						close(tube[1]);
+						close(tube[0]);
+						}
+
+
+
+
+
+					*/
+			//_________________4.3____début
+			/*
+			char *file_out = trouve_redirection(tokens, ">");
+			char *file_in = trouve_redirection(tokens, "<");
+
+			pid_t pid = fork();
+			if (pid == 0) {
+				if(file_out!=NULL){
+					int fd_out;
+					if ((fd_out = open(file_out, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
+						perror("open");
+						exit(1);
+					}
+					dup2(fd_out, 1);
+				}
+				if(file_in!=NULL){
+					int fd_in;
+					if ((fd_in = open(file_in, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
+						perror("open");
+						exit(1);
+					}
+					dup2(fd_in, 0);
+				}
+
 				execvp(tokens[0], tokens);
 				perror("execvp");
 				exit(0);
-			}
+			} */
 
-			pid_t pid2 = fork();
-			if(pid2==0){
-				close(tube[1]);
-				dup2(tube[0], 0);
-				execvp(tokens_cmd2[0], tokens_cmd2);
-				perror("execvp");
-				exit(0);
-			}
-			close(tube[1]);
-			close(tube[0]); 
-			}
-		
-		
-
-
-
-
-		//_________________4.3____début
-		/* 
-		char *file_out = trouve_redirection(tokens, ">");
-		char *file_in = trouve_redirection(tokens, "<");
-
-		pid_t pid = fork();
-		if (pid == 0) { 
-			if(file_out!=NULL){
-				int fd_out;
-				if ((fd_out = open(file_out, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
-					perror("open");
-					exit(1);
-				}
-				dup2(fd_out, 1);
-			}
-			if(file_in!=NULL){
-				int fd_in;
-				if ((fd_in = open(file_in, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
-					perror("open");
-					exit(1);
-				}
-				dup2(fd_in, 0);
-			}	
-
-			execvp(tokens[0], tokens);
-			perror("execvp");
-			exit(0);
-		} */
-
-		wait(NULL);
+			wait(NULL);
 	
 	}
 	/* On ne devrait jamais arriver là */

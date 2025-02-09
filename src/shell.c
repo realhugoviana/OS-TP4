@@ -66,12 +66,36 @@ int main() {
 			printf("EOF: exiting\n");
 			exit(0);
 		}
-		char **tokens_cmd2 = trouve_tube(tokens, "|");
-		char **tokens_cmd3 = NULL;
-		if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} //pour savoir quand il n'y a plus de pipe
-		int cmp=0; //compteur pour savoir si on est dans le premier
-		int tab_tube[MAX_TOKEN_NB][2]; 
-		int fin = 2;  
+		
+		//char **tokens_cmd3 = NULL;
+		//if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} //pour savoir quand il n'y a plus de pipe
+		//int cmp=0; //compteur pour savoir si on est dans le premier
+		int tab_tube[MAX_TOKEN_NB][2];
+		char **tokens_2[MAX_TOKEN_NB];
+		int a=0; 
+		while(tokens[a]!=NULL){
+			tokens_2[a] = tokens[a];
+			a++;
+		}
+		tokens_2[a]=NULL;
+		int ind_tab = 0;  
+		
+		while(1){
+			char **tokens_cmd = trouve_tube(tokens_2, "|");
+			if(tokens_cmd ==NULL){break;}
+			if(pipe(tab_tube[ind_tab])==-1){
+					fprintf(stderr, "Erreur de creation du tube\n");
+					exit(1); 
+			}
+			ind_tab++; 	
+		}
+		int j = 0;
+		while(tokens[j]!=NULL){
+			printf("%s ", tokens[j]);
+			j++;
+		}
+
+		/* 
 		while (fin-1!=0){
 			printf("cmp = %d\n", cmp); 
 			if(tokens_cmd2==NULL && cmp==0){ //pas de pipe on exécute la comande
@@ -121,15 +145,16 @@ int main() {
 					exit(0);
 				}
 
-			}
-			else{//quand on est à la fin
+			} */ 
+		/* else if(tokens_cmd2!=NULL){//quand on est à la fin
 				printf("fin x\n"); 
 				pid_t pid2 = fork();
 				if(pid2==0){
 					close(tab_tube[cmp-1][1]);
 					printf("fils \n");
-					dup2(tab_tube[cmp - 1][0], 0);
+					dup2(tab_tube[cmp-1][0], 0);
 					execvp(tokens[0], tokens);
+					printf("fils 2 \n"); 
 					perror("execvp");
 					exit(0);
 				}
@@ -142,18 +167,27 @@ int main() {
 				tokens[ind] = tokens_cmd2[ind];
 				ind++;
 			}
-			tokens[ind]=NULL; 
+			tokens[ind]=NULL;
 			// TEST
-			int j = 0;
+			//int j = 0;
 			while(tokens[j]!=NULL){
 				printf("%s ", tokens[j]);
 				j++;
 			}
-			printf("\n fin while\n");
+			printf("\n fin while\n"); 
 
-			tokens_cmd2= trouve_tube(tokens, "|");
-			if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} 
+			//tokens_cmd2= trouve_tube(tokens, "|");
+			//if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} 
+		
+
+		
 		}
+		close(tab_tube[cmp][0]); 
+		close(tab_tube[cmp][1]);   
+		
+		*/ 
+
+
 		/*int i =0; 
 		while (i <=cmp){  //pour close les pipe
 			close(tab_tube[i][0]); 

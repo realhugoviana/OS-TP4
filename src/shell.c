@@ -66,40 +66,46 @@ int main() {
 			printf("EOF: exiting\n");
 			exit(0);
 		}
-		
-		//char **tokens_cmd3 = NULL;
-		//if(tokens_cmd2!=NULL){  tokens_cmd3= trouve_tube(tokens_cmd2, "|");} //pour savoir quand il n'y a plus de pipe
-		//int cmp=0; //compteur pour savoir si on est dans le premier
-		int tab_tube[MAX_TOKEN_NB][2];
-		char **tokens_2[MAX_TOKEN_NB];
-		int a=0; 
-		while(tokens[a]!=NULL){
-			tokens_2[a] = tokens[a];
-			a++;
+		//code pour stocker tous les tubes dans tab_tube et les commandes dans tab_tokens
+		int max_tokens=10; 
+		int tab_tube[max_tokens][2];
+		char ***tab_tokens = (char ***) malloc(max_tokens * sizeof(char **)); 
+		if(tab_tokens==NULL){
+			perror("Erruer malloc pour tab_tokens"); 
+			return(1); 
 		}
-		tokens_2[a]=NULL;
-		int ind_tab = 0;  
-		
+		char **tokens_cmd; 
+		int ind_tab_tube=0; 
 		while(1){
-			char **tokens_cmd = trouve_tube(tokens_2, "|");
+			tokens_cmd = trouve_tube(tokens, "|");
 			if(tokens_cmd ==NULL){break;}
-			if(pipe(tab_tube[ind_tab])==-1){
+
+			if(pipe(tab_tube[ind_tab_tube])==-1){
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
 			}
-			ind_tab++; 	
+			tab_tokens[ind_tab_tube]= tokens; 
+			
+			int i=0; 
+			while(tokens_cmd[i]!=NULL){
+				tokens[i]= tokens_cmd[i]; 
+				i++; 
+			}
+			tokens[i]= tokens_cmd[i]; 
+			ind_tab_tube++; 	
 		}
+		tab_tokens[ind_tab_tube]= tokens; //pour insérer la dernière commande
+		close(tab_tube[ind_tab_tube][0]);  close(tab_tube[ind_tab_tube][1]); //il y a un pipe en plus
+		 
 		int j = 0;
-		while(tokens[j]!=NULL){
-			printf("%s ", tokens[j]);
-			j++;
-		}
+		while( tab_tokens[0][j]!=NULL){
+			printf("%s \n", tokens[j]);
+			printf("%s \n", tab_tokens[0][j]);
 
-		/* 
-		while (fin-1!=0){
-			printf("cmp = %d\n", cmp); 
-			if(tokens_cmd2==NULL && cmp==0){ //pas de pipe on exécute la comande
-				printf(" 11\n"); 
+			j++;
+		} 
+/* 
+		if(tab_tokens[0]==NULL){ //pas de pipe on exécute la comande
 				pid_t pid1 = fork();
 				if(pid1==0){
 					execvp(tokens[0], tokens);
@@ -107,12 +113,12 @@ int main() {
 					exit(0);
 
 				}
-				fin-=1; 
 				break;
 			}
-			
 
-			if(cmp ==0){ //si on se trouve avant le premier pipe
+		int parcours_tube=0; 
+		while (parcours_tube <= ind_tab_tube){ 
+			if( ==0){ //si on se trouve avant le premier pipe
 				printf("22 \n"); 
 				if(pipe(tab_tube[cmp])==-1){
 					fprintf(stderr, "Erreur de creation du tube\n");
@@ -145,8 +151,8 @@ int main() {
 					exit(0);
 				}
 
-			} */ 
-		/* else if(tokens_cmd2!=NULL){//quand on est à la fin
+			} 
+			else if(tokens_cmd2!=NULL){//quand on est à la fin
 				printf("fin x\n"); 
 				pid_t pid2 = fork();
 				if(pid2==0){
@@ -185,7 +191,7 @@ int main() {
 		close(tab_tube[cmp][0]); 
 		close(tab_tube[cmp][1]);   
 		
-		*/ 
+	*/
 
 
 		/*int i =0; 
@@ -254,7 +260,7 @@ int main() {
 				perror("execvp");
 				exit(0);
 			} */
-
+			free(tab_tokens); 
 			wait(NULL);
 	
 	}

@@ -93,8 +93,8 @@ int main() {
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
 				}
-				pid_t pid1 = fork();
-				if(pid1==0){ //on écrit dans le premier tube si c'est la première commande
+				pid_t pid = fork();
+				if(pid==0){ //on écrit dans le premier tube si c'est la première commande
 					close(tab_tube[parcours][0]);
 					dup2(tab_tube[parcours][1], 1);
 					execvp(tokens[0], tokens);
@@ -110,13 +110,14 @@ int main() {
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
 				}
-				pid_t pid1 = fork();
-				if(pid1==0){ //on écrit dans le premier tube si c'est la première commande
+				pid_t pid = fork();
+				if(pid==0){ //on écrit dans le premier tube si c'est la première commande
 					close(tab_tube[parcours-1][1]);
 					dup2(tab_tube[parcours-1][0], 0);
 
 					close(tab_tube[parcours][0]);
 					dup2(tab_tube[parcours][1], 1);
+
 					execvp(tokens[0], tokens);
 					perror("execvp");
 					exit(0);
@@ -125,9 +126,15 @@ int main() {
 
 			} 
 			else if(tokens_cmd==NULL){//quand on est à la fin
-				printf("fin x\n"); 
-				pid_t pid2 = fork();
-				if(pid2==0){
+				printf("fin x\n");
+				close(tab_tube[parcours - 2][0]);
+				close(tab_tube[parcours-2][1]); 
+
+				//close(tab_tube[parcours - 1][0]);
+				close(tab_tube[parcours-1][1]); 
+
+				pid_t pid_fin = fork();
+				if(pid_fin==0){
 					close(tab_tube[parcours-1][1]);
 					dup2(tab_tube[parcours-1][0], 0); 
 					execvp(tokens[0], tokens);
@@ -135,6 +142,11 @@ int main() {
 					perror("execvp");
 					exit(0);
 				}
+				
+				close(tab_tube[parcours-1][0]);
+				int status; 
+				waitpid(pid_fin, &status, 0);   
+
 				break;  
 			}
 
@@ -146,17 +158,9 @@ int main() {
 			}
 			tokens[ind]=NULL;
 			tokens_cmd = trouve_tube(tokens, "|");
-	
-		
-
-		
 		}
-		//close(tab_tube[1][0]);
+			
 
-		close(tab_tube[0][0]); 
-		close(tab_tube[0][1]); 
-		close(tab_tube[1][1]);  
-		//close(tab_tube[1][0]); 
 		 
 		
 	

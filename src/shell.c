@@ -73,6 +73,7 @@ int main() {
 		int first=0; 
 		int max_tokens=10; 
 		int tab_tube[max_tokens][2];
+		//int ind_ferm_pipe=0; //pour fermer les pipe inutilsés avant les fils
 
 		while (1 ){ 
 			if(first==0 && tokens_cmd==NULL){ //pas de pipe on exécute la comande
@@ -105,11 +106,14 @@ int main() {
 			}
 
 			else if(tokens_cmd!=NULL && parcours!=0 ){ //si la commande se trouve entre deux pipe
-				printf("33 \n"); 
+				printf("33 \n");
+				//close(tab_tube[0][1]);
+
 				if(pipe(tab_tube[parcours])==-1){
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
 				}
+
 				pid_t pid = fork();
 				if(pid==0){ //on écrit dans le premier tube si c'est la première commande
 					close(tab_tube[parcours-1][1]);
@@ -127,12 +131,15 @@ int main() {
 			} 
 			else if(tokens_cmd==NULL){//quand on est à la fin
 				printf("fin x\n");
-				close(tab_tube[parcours - 2][0]);
-				close(tab_tube[parcours-2][1]); 
-
-				//close(tab_tube[parcours - 1][0]);
 				close(tab_tube[parcours-1][1]); 
+				// for (int i = 0; i < parcours - 1; i++){
+				// 	close(tab_tube[i][0]); 
+				// 	close(tab_tube[i][1]); 
+				// }
+				// close(tab_tube[parcours-1][1]); 
 
+
+	
 				pid_t pid_fin = fork();
 				if(pid_fin==0){
 					close(tab_tube[parcours-1][1]);
@@ -150,6 +157,7 @@ int main() {
 				break;  
 			}
 
+
 			parcours+=1; 
 			int ind=0; 
 			while(tokens_cmd[ind]!=NULL){
@@ -158,6 +166,13 @@ int main() {
 			}
 			tokens[ind]=NULL;
 			tokens_cmd = trouve_tube(tokens, "|");
+
+		
+			for (int i = 0; i < parcours - 1; i++){
+				close(tab_tube[i][0]); 
+				close(tab_tube[i][1]); 
+			}
+			
 		}
 			
 

@@ -13,6 +13,31 @@
 #define INPUT_BUFFER_SIZE 2048
 #define MAX_TOKEN_NB 512
 
+
+			//_________________4.3____début
+//fonction qui va rediriger l'entrée standard s'il y a un < et la sortie standard s'il y a un >
+// prend un argument un tokens, et le modifie avec l'appel à trouve_redirection si il y a une rédirection
+void rediriger(char **tokens){  
+	char *file_out = trouve_redirection(tokens, ">");
+	char *file_in = trouve_redirection(tokens, "<");
+	if(file_out!=NULL){
+		int fd_out;
+		if ((fd_out = open(file_out, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
+			perror("open");
+			exit(1);
+		}
+		dup2(fd_out, 1);
+	}
+	if(file_in!=NULL){
+		int fd_in;
+		if ((fd_in = open(file_in, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
+			perror("open");
+			exit(1);
+		}
+		dup2(fd_in, 0);
+	}
+}
+
 int main() {
 	/* Une variable pour sotcker les caractères tapés au clavier */
 	char line[INPUT_BUFFER_SIZE+1];
@@ -70,15 +95,14 @@ int main() {
 		
 		char **tokens_cmd = trouve_tube(tokens, "|");
 		int parcours =0; 
-		int first=0; 
-		int max_tokens=10; 
-		int tab_tube[max_tokens][2];
-		//int ind_ferm_pipe=0; //pour fermer les pipe inutilsés avant les fils
-
+		int first=0;
+		int max_pipe = 300;   //nombre maximal de pipe
+		int tab_tube[max_pipe][2];
 		while (1 ){ 
 			if(first==0 && tokens_cmd==NULL){ //pas de pipe on exécute la comande
 				pid_t pid1 = fork();
 				if(pid1==0){
+					rediriger(tokens); //pour vérifier s'il n'y a pas de redirection
 					execvp(tokens[0], tokens);
 					perror("execvp");
 					exit(0);
@@ -89,7 +113,6 @@ int main() {
 			first++; 
 
 			if(parcours ==0){ //si on se trouve avant le premier pipe
-				printf("22 \n"); 
 				if(pipe(tab_tube[parcours])==-1){
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
@@ -102,20 +125,17 @@ int main() {
 					perror("execvp");
 					exit(0);
 				}
-				printf("22 is good\n");
 			}
 
 			else if(tokens_cmd!=NULL && parcours!=0 ){ //si la commande se trouve entre deux pipe
-				printf("33 \n");
-				//close(tab_tube[0][1]);
-
 				if(pipe(tab_tube[parcours])==-1){
 					fprintf(stderr, "Erreur de creation du tube\n");
 					exit(1); 
 				}
-				close(tab_tube[parcours-1][1]);
+				close(tab_tube[parcours-1][1]); // on fermer l'écriture du pipe précédant car on va plus écrire dedans, 
+												//afin que le pipe qui lit puisse savoir qu'on écrit plus, comme ça il restera pas bloquer
 				pid_t pid = fork();
-				if(pid==0){ //on écrit dans le premier tube si c'est la première commande
+				if(pid==0){ 
 					close(tab_tube[parcours-1][1]);
 					dup2(tab_tube[parcours-1][0], 0);
 
@@ -126,37 +146,23 @@ int main() {
 					perror("execvp");
 					exit(0);
 				}
-				printf("exec ok \n");
-				close(tab_tube[parcours - 1][0]);
+				close(tab_tube[parcours - 1][0]); //on ferme la lecture du pipe précédant car on va plus lire dedans
 			} 
 			else if(tokens_cmd==NULL){//quand on est à la fin
-				printf("fin x\n");
-				//close(tab_tube[parcours-1][1]); 
-				// for (int i = 0; i < parcours - 1; i++){
-				// 	close(tab_tube[i][0]); 
-				// 	close(tab_tube[i][1]); 
-				// }
-				// close(tab_tube[parcours-1][1]); 
-
-
-				//close(tab_tube[parcours-2][1]); 
-				//close(tab_tube[parcours-2][0]); 
-				close(tab_tube[parcours -1][1]) ; 
+				close(tab_tube[parcours -1][1]) ;  //on ferme l'écriture du tube précédent avant le fork pour s'assurer que le processus d'avant a fini d'écrire
 				pid_t pid_fin = fork();
 				if(pid_fin==0){
 					close(tab_tube[parcours-1][1]);
-					dup2(tab_tube[parcours-1][0], 0); 
+					dup2(tab_tube[parcours-1][0], 0);
+
+					rediriger(tokens); //pour vérifier s'il n'y a pas de redirection
 					execvp(tokens[0], tokens);
 					printf("fils 2 \n"); 
 					perror("execvp");
 					exit(0);
 				}
-				
-			
-				close(tab_tube[parcours-1][0]);
-				//int status; 
-				//waitpid(pid_fin, &status, 0);   
-
+					
+				close(tab_tube[parcours-1][0]);   //on ferme la lecture car on va plus lire depuis ce tube
 				break;  
 			}
 
@@ -169,16 +175,8 @@ int main() {
 			}
 			tokens[ind]=NULL;
 			tokens_cmd = trouve_tube(tokens, "|");
-
-		
-			/*for (int i = 0; i < parcours - 1; i++){
-				close(tab_tube[i][0]); 
-				close(tab_tube[i][1]); 
-			}*/
 			
 		}
-			
-		//wait(NULL);
 		int status; 
 		while(waitpid(-1, &status, 0)> 0) ;  //pour attendre tous les processus
 
@@ -191,73 +189,3 @@ int main() {
 	
 }
 
-
-
-
-
-		/*int i =0; 
-		while (i <=cmp){  //pour close les pipe
-			close(tab_tube[i][0]); 
-			close(tab_tube[i][1]); 
-		} */
-			/*
-					if (tokens_cmd2!=NULL){
-						int tube[2];
-						if(pipe(tube)==-1){
-							fprintf(stderr, "Erreur de creation du tube\n");
-							exit(1);
-						}
-						pid_t pid1 = fork();
-						if(pid1==0){
-							close(tube[0]);
-							dup2(tube[1], 1);
-							execvp(tokens[0], tokens);
-							perror("execvp");
-							exit(0);
-						}
-
-						pid_t pid2 = fork();
-						if(pid2==0){
-							close(tube[1]);
-							dup2(tube[0], 0);
-							execvp(tokens_cmd2[0], tokens_cmd2);
-							perror("execvp");
-							exit(0);
-						}
-						close(tube[1]);
-						close(tube[0]);
-						}
-
-
-
-
-
-					*/
-			//_________________4.3____début
-			/*
-			char *file_out = trouve_redirection(tokens, ">");
-			char *file_in = trouve_redirection(tokens, "<");
-
-			pid_t pid = fork();
-			if (pid == 0) {
-				if(file_out!=NULL){
-					int fd_out;
-					if ((fd_out = open(file_out, O_CREAT | O_WRONLY, S_IRUSR | S_IWUSR)) < 0) {
-						perror("open");
-						exit(1);
-					}
-					dup2(fd_out, 1);
-				}
-				if(file_in!=NULL){
-					int fd_in;
-					if ((fd_in = open(file_in, O_RDONLY, S_IRUSR | S_IWUSR)) < 0) {
-						perror("open");
-						exit(1);
-					}
-					dup2(fd_in, 0);
-				}
-
-				execvp(tokens[0], tokens);
-				perror("execvp");
-				exit(0);
-			} */

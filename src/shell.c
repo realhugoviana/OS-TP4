@@ -5,7 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/wait.h>   //pour wait
+#include <sys/wait.h>  
 #include "shell-utils.h"
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -36,6 +36,21 @@ void rediriger(char **tokens){
 		}
 		dup2(fd_in, 0);
 	}
+}
+
+//fonction qui vérifie s'il y a une commande doit-être exécutée en arrière plan, si oui elle retourne 1 et 0 sinon 
+int test_arriere_plan(char **tokens){
+	int i=0; 
+	while(tokens[i ] != NULL) {
+		if (strcmp(tokens[i], "&")==0) {
+			tokens[i]=NULL; //on enlève le & afin d'exécuter la commande
+			return 1; 
+			
+		}
+		i++;
+	}
+	/* Rien trouvé */
+	return 0; 
 }
 
 int main() {
@@ -98,9 +113,14 @@ int main() {
 		int first=0;
 		int max_pipe = 300;   //nombre maximal de pipe
 		int tab_tube[max_pipe][2];
+		//int ar_plan=0;
+		//pid_t tab_pid[2] = { -4, -4}; c'était pour la gestion des zombies
 		while (1 ){ 
 			if(first==0 && tokens_cmd==NULL){ //pas de pipe on exécute la comande
+				
+				//ar_plan= test_arriere_plan(tokens); 	
 				pid_t pid1 = fork();
+				//tab_pid[0]= pid1; 
 				if(pid1==0){
 					rediriger(tokens); //pour vérifier s'il n'y a pas de redirection
 					execvp(tokens[0], tokens);
@@ -150,11 +170,12 @@ int main() {
 			} 
 			else if(tokens_cmd==NULL){//quand on est à la fin
 				close(tab_tube[parcours -1][1]) ;  //on ferme l'écriture du tube précédent avant le fork pour s'assurer que le processus d'avant a fini d'écrire
+				//ar_plan= test_arriere_plan(tokens);  //vérifier s'il y a des taches en arrières plan
 				pid_t pid_fin = fork();
+				//tab_pid[1]= pid_fin; 
 				if(pid_fin==0){
 					close(tab_tube[parcours-1][1]);
 					dup2(tab_tube[parcours-1][0], 0);
-
 					rediriger(tokens); //pour vérifier s'il n'y a pas de redirection
 					execvp(tokens[0], tokens);
 					printf("fils 2 \n"); 
@@ -179,8 +200,20 @@ int main() {
 		}
 		int status; 
 		while(waitpid(-1, &status, 0)> 0) ;  //pour attendre tous les processus
-
-	
+		
+		///_______-j'ai fait cette partie pour la 4.4 gestion des zombie mais ça ne lmarche pas
+		/* 
+		pid_t pid_wait;
+		while (1){
+			pid_wait= waitpid(-1, &status, WNOHANG); 
+			if(pid_wait==0) {continue; }
+			if(pid_wait==-1){break; } //il n'y a plus de processus à attendre 
+			
+			if( pid_wait== tab_pid[0] && ar_plan ==1){ continue; } 
+			
+			else if(pid_wait== tab_pid[1] && ar_plan==1) {continue ; }
+		}
+			*/
 	}
 	/* On ne devrait jamais arriver là */
 
